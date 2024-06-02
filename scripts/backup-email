@@ -1,0 +1,6 @@
+/system backup save name=MK-HomeLab.backup
+/export file=MK-HomeLab.rsc
+:delay 2s
+:global data [/system clock get date]
+:global hora [/system clock get time]
+/tool e-mail send to="ramos.ti@live.com" subject="Backup Mikrotik: MK-HomeLab Automatico realizado em $data as $hora" file="MK-HomeLab.backup, MK-HomeLab.rsc" body="Segue em anexo, os arquivos de backup do Mikrotik realizado as $hora de $data."
