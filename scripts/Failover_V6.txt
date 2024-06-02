@@ -1,0 +1,104 @@
+#=================================================
+# Desenvolvido por Francisco Neto                 
+#       www.redesbrasil.com                        
+#=================================================
+
+
+#============== Instruções =======================
+# Colocar comentario nas rotas default
+# Ex. Link1, Link2, Link-Vivo, Link-OI
+#=================================================
+#=================================================
+
+
+
+#=================================================
+#======== Remove regras e scripts antigas   ======
+#=================================================
+
+/ip route remove [find comment~"!=="]
+/ip route rule remove [find comment~"!=="]
+/system script remove [find name=failover]
+/system scheduler remove [find name="executa script failover"]
+
+#=================================================
+#=================================================
+
+
+#=================================================
+#======== Cria as rotas de teste   ===============
+#=================================================
+
+:foreach i in=[/ip route find  dst-address=0.0.0.0/0 routing-mark<>""] do={
+
+:global gateway [/ip route get number=$i gateway]
+:global comentario [/ip route get number=$i comment]
+#:put ($gateway."-".$comment)
+/ip route add gateway=$gateway routing-mark=("rota-de-teste-para-" . $comentario) comment=("!== Rota de teste para " . $comentario)
+/ip route rule add action=lookup-only-in-table routing-mark=("rota-de-teste-para-" . $comentario) table=("rota-de-teste-para-" . $comentario) comment=("!== Force teste para o failover ==> ".$comentario)
+}
+#=================================================
+#=================================================
+
+###########################################################################################################################
+
+/system scheduler
+add interval=30s name="executa script failover" on-event=failover policy=\
+    ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon \
+    start-time=startup
+
+	
+/system script
+add name=failover owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="# IPs a serem testados separados por virgula (n\E3o usar nom\
+    es, pois se todas as rotas ficarem paradas n\E3o tem como resolver nomes e logo as rotas nunca ir\E3o voltar)\r\
+    \n# Interlavo = timeout de cada ping   onde 00:00:00.5 corresponde a 500ms \r\
+    \n:global IPsParaTeste \"8.8.8.8,8.8.4.4,200.160.0.8,31.13.80.8\"\r\
+    \n:global NumeroDePings 2\r\
+    \n:global Intervalo 00:00:00.5\r\
+    \n\r\
+    \n\r\
+    \n\r\
+    \n#Converte sitrngs em arrays\r\
+    \n:global IPsParaTeste [:toarray \$IPsParaTeste];\r\
+    \n\r\
+    \n\r\
+    \n\r\
+    \n#\r\
+    \n#Seleciona as tebelas de roteamento para teste\r\
+    \n\r\
+    \n:foreach i in=[/ip route find  dst-address=0.0.0.0/0 routing-mark<>\"\"] do={\r\
+    \n\r\
+    \n:global comentario [/ip route get number=\$i comment]\r\
+    \n:global TabRoteAtual (\"rota-de-teste-para-\" . \$comentario)\r\
+    \n\r\
+    \n{\r\
+    \n:global LinkUP 0\r\
+    \n:foreach IPAtualParaTeste in=\$IPsParaTeste do= \\\r\
+    \n\r\
+    \n{\r\
+    \n:set LinkUP (\$LinkUP + [ping \$IPAtualParaTeste interval=\$Intervalo count=\$NumeroDePings routing-table=\$TabRoteAtual])\r\
+    \n:put (\$TabRoteAtual)\r\
+    \n:put \$LinkUP\r\
+    \n\r\
+    \n}\r\
+    \n#De acordo com o estado do link ativa ou desativa as rotas\r\
+    \n\r\
+    \n################## if down ##################\r\
+    \nif (\$LinkUP=0) do={if ([/ip route print count-only where comment=\$comentario disabled]=0) do={\r\
+    \n\r\
+    \n/ip route disable [find comment=\$comentario]\r\
+    \n\r\
+    \n\r\
+    \n}}\r\
+    \n\r\
+    \n################## if up ##################\r\
+    \nif (\$LinkUP>0) do={if ([/ip route print count-only where comment=\$comentario disabled]>0) do={\r\
+    \n\r\
+    \n/ip route enable [find comment=\$comentario]\r\
+    \n\r\
+    \n\r\
+    \n}}\r\
+    \n\r\
+    \n}\r\
+    \n}\r\
+    \n"

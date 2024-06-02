@@ -1,0 +1,113 @@
+#=================================================
+# Desenvolvido por Francisco Neto                 
+#       www.redesbrasil.com                        
+#=================================================
+
+
+#============== Instruções =======================
+# Colocar comentario nas rotas default
+# Ex. Link1, Link2, Link-Vivo, Link-OI
+#=================================================
+#=================================================
+
+
+
+#=================================================
+#======== Remove regras e scripts antigas   ======
+#=================================================
+
+/ip route remove [find comment~"!=="]
+/routing rule remove [find comment~"!=="]
+/system script remove [find name=FAILOVER]
+/system scheduler remove [find name="EXECUTA SCRIPT DE FAILOVER"]
+/ip/vrf/remove [find comment~"!=="]
+#=================================================
+#=================================================
+
+
+#=================================================
+#======== Cria as rotas de teste   ===============
+#=================================================
+
+:foreach i in=[/ip route find  dst-address=0.0.0.0/0 routing-table<>""] do={
+
+:global gateway [/ip route get number=$i gateway]
+:global comentario [/ip route get number=$i comment]
+
+
+/ip/vrf/add interfaces=none name=("TEST-" . $comentario) comment="!== VRF PARA TESTE"
+:delay 2
+/ip route add gateway=$gateway routing-table=("TEST-" . $comentario) comment=("!== ROTA DE TESTE " . $comentario)
+/routing rule add action=lookup-only-in-table comment="!== FORCE TESTE DE FAILOVER ==> LINK 1" disabled=no routing-mark=("TEST-" . $comentario) table=("TEST-" . $comentario)
+
+#:put ($gateway."-".$comentario)
+
+}
+
+
+
+#=================================================
+#=================================================
+
+###########################################################################################################################
+
+/system scheduler
+add interval=30s name="EXECUTA SCRIPT DE FAILOVER" on-event=FAILOVER policy=\
+    ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon \
+    start-time=startup
+
+	
+/system script
+add dont-require-permissions=no name=FAILOVER owner=admin policy=\
+    ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="# IPs a serem testados separados\
+    \_por virgula (n\E3o usar nomes, pois se todas as rotas ficarem paradas n\E3o tem como resolver nomes e l\
+    ogo as rotas nunca ir\E3o voltar)\r\
+    \n# Interlavo = timeout de cada ping   onde 00:00:00.5 corresponde a 500ms \r\
+    \n:global IPsParaTeste \"8.8.8.8,8.8.4.4,200.160.0.8,31.13.80.8\"\r\
+    \n:global NumeroDePings 3\r\
+    \n:global Intervalo 00:00:00.5\r\
+    \n\r\
+    \n\r\
+    \n\r\
+    \n#Converte sitrngs em arrays\r\
+    \n:global IPsParaTeste [:toarray \$IPsParaTeste];\r\
+    \n\r\
+    \n\r\
+    \n#Seleciona as tebelas de roteamento para teste\r\
+    \n\r\
+    \n:foreach i in=[/ip route find  dst-address=0.0.0.0/0 routing-table=\"main\"] do={\r\
+    \n\r\
+    \n/ping 127.0.0.1 count=1\r\
+    \n:global LinkState 0\r\
+    \n:global comentario [/ip route get number=\$i comment]\r\
+    \n:global TabRoteAtual (\"TEST-\" . \$comentario)\r\
+    \n\r\
+    \n\r\
+    \n\r\
+    \n:foreach IPAtualParaTeste in=\$IPsParaTeste do={\r\
+    \n:global LinkState (\$LinkState + [ping address=\$IPAtualParaTeste  vrf=\$TabRoteAtual interval=\$Interv\
+    alo count=\$NumeroDePings ])\r\
+    \n}\r\
+    \n\r\
+    \n#:put (\$TabRoteAtual)\r\
+    \n:put \$LinkState\r\
+    \n\r\
+    \n\r\
+    \n#De acordo com o estado do link ativa ou desativa as rotas\r\
+    \n\r\
+    \n################## if down ##################\r\
+    \nif (\$LinkState=0) do={if ([/ip route print count-only where comment=\$comentario disabled]=0) do={\r\
+    \n/ip route disable [find comment=\$comentario]\r\
+    \n}}\r\
+    \n\r\
+    \n################## if up ##################\r\
+    \nif (\$LinkState>0) do={if ([/ip route print count-only where comment=\$comentario disabled]>0) do={\r\
+    \n\r\
+    \n/ip route enable [find comment=\$comentario]\r\
+    \n\r\
+    \n\r\
+    \n}}\r\
+    \n\r\
+    \n\r\
+    \n}\r\
+    \n"
