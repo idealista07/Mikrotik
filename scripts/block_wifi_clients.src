@@ -1,0 +1,4 @@
+/ip firewall filter
+add action=drop chain=forward comment="Visitantes-Bloqueados-para-rede local" in-interface=vlan20-Wifi-Clientes out-interface=bridge1-RedeLocal
+add action=accept chain=forward comment="Libera Visitantes Internet" in-interface=vlan10-Wifi-Corporativo out-interface-list=LINKS
+add action=reject chain=input comment="INPUT WAN - REJECT Restante" in-interface-list=LINKS reject-with=icmp-network-unreachable
