@@ -1,0 +1,27 @@
+#Configurar VPN Servidor
+
+/certificate
+add name=ca common-name=ca days-valid=3650 key-size=4096 key-usage=crl-sign,key-cert-sign
+add name=server common-name=server days-valid=3650 key-size=4096 key-usage=digital-signature,key-encipherment,tls-server
+add name=cliente common-name=cliente days-valid=3650 key-size=4096 key-usage=tls-client
+
+Assinar Certificado
+
+/certificate
+sign ca name=ca 
+sign server name=server ca=ca 
+sign cliente name=cliente ca=ca 
+
+Exportar Certificados
+/certificate
+export-certificate ca export-passphrase=""
+export-certificate cliente export-passphrase="Senha12caracteres"
+
+/interface ovpn-server server set enabled=yes certificate=server auth=sha1 cipher=aes256 port=1195 netmask=24 require-client-certificate=yes mode=ip
+
+Criar um pool1-VPN para openvpn
+10.245.100.2-10.245.100.250
+
+Criar um profile para openvpn
+Local Addess = 10.245.100.1
+Remote Address = pool1-VPN
