@@ -1,0 +1,6 @@
+/ip firewall filter
+add action=accept chain=input comment="ACCEPT - Estabelecidas e Relacionadas" connection-state=established,related
+add action=drop chain=input comment="Drop - Conex\F5es Inv\E1lidas" connection-state=invalid
+add action=accept chain=input comment="VPN" dst-port=1196 in-interface-list=LINKS protocol=tcp
+add action=accept chain=input comment="ACCEPT - Winbox todas as interfaces" dst-port=8291,80 in-interface-list=LINKS protocol=tcp src-address-list= Ext_Confiaveis
+add action=accept chain=input comment="INPUT - ACEITA ICMP todas as interfaces" limit=10,5:packet protocol=icmp
