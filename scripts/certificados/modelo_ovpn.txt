@@ -1,0 +1,29 @@
+client
+dev tun
+proto tcp
+remote [cloud/ip] [porta]
+nobind
+persist-key
+persist-tun
+remote-cert-tls server
+auth SHA1
+auth-user-pass
+auth-nocache
+route 10.0.0.0 255.255.255.0
+cipher AES-256-CBC
+verb 4
+mute 10
+#Abaixo força o registro do DNS e sufix
+register-dns
+dhcp-option DNS 10.0.0.1
+block-outside-dns
+dhcp-option DOMAIN [dominio]
+#redirect-gateway def1
+#Abaixo estão os certificados digitais
+<ca></ca>
+<cert></cert>
+<key></key>
+
+#parametro para iniciar arquivo.ovpn no atalho do desktop
+#--connect "nome-arquivo.ovpn"
+
