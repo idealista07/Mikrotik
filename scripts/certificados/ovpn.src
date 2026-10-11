@@ -25,6 +25,3 @@ Criar um pool1-VPN para openvpn
 Criar um profile para openvpn
 Local Addess = 10.245.100.1
 Remote Address = pool1-VPN
-
-# parametro para iniciar arquivo.ovpn no atalho do desktop
---connect "nome-arquivo.ovpn"
